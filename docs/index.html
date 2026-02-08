@@ -315,6 +315,155 @@
       font-family: var(--mono);
     }
 
+    /* Demo animation */
+    .demo {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      margin: 48px 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .demo-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .demo-flow {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .demo-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      animation: fadeSlideIn 0.6s ease forwards;
+    }
+
+    .demo-step:nth-child(1) { animation-delay: 0.5s; }
+    .demo-step:nth-child(2) { animation-delay: 1.8s; }
+    .demo-step:nth-child(3) { animation-delay: 3.0s; }
+    .demo-step:nth-child(4) { animation-delay: 4.2s; }
+    .demo-step:nth-child(5) { animation-delay: 5.4s; }
+
+    .demo-arrow {
+      color: var(--border-light);
+      font-size: 1.2rem;
+      opacity: 0;
+      animation: fadeSlideIn 0.4s ease forwards;
+    }
+
+    .demo-arrow:nth-child(2) { animation-delay: 1.4s; }
+    .demo-arrow:nth-child(4) { animation-delay: 2.6s; }
+    .demo-arrow:nth-child(6) { animation-delay: 3.8s; }
+    .demo-arrow:nth-child(8) { animation-delay: 5.0s; }
+
+    .demo-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      min-width: 120px;
+      text-align: center;
+      position: relative;
+    }
+
+    .demo-box .demo-title {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .demo-box .demo-content {
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .demo-box.clipboard { border-color: var(--accent); }
+    .demo-box.clipboard .demo-content { color: var(--accent-blue); }
+
+    .demo-box.detect .demo-content {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .demo-box.file .demo-content { color: var(--text-muted); }
+
+    .demo-box.done {
+      border-color: var(--green);
+    }
+    .demo-box.done .demo-content {
+      color: var(--green);
+    }
+
+    .demo-pulse {
+      position: absolute;
+      inset: -1px;
+      border-radius: 8px;
+      border: 1px solid var(--green);
+      opacity: 0;
+      animation: pulse 1.5s ease-out 5.8s forwards;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%   { opacity: 0.8; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.06); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .demo-cursor {
+      display: inline-block;
+      width: 1px;
+      height: 12px;
+      background: var(--accent);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+
+    .demo-restart {
+      display: block;
+      margin: 16px auto 0;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .demo-restart:hover {
+      border-color: var(--accent);
+      color: var(--text-muted);
+    }
+
     /* Footer */
     footer {
       text-align: center;
@@ -362,6 +511,7 @@
       </svg>
 
       <h1><span>notd</span></h1>
+      <p style="font-style:italic; color:var(--text-dim); font-size:1.4rem; margin-bottom:4px;">no&#xB7;ted</p>
       <p>intentional clipboard capture</p>
 
       <div class="badges">
@@ -381,6 +531,49 @@
         <span class="copy-hint">click to copy</span>
         <code>git clone https://github.com/Deze-Tingz/notd.git</code>
       </div>
+    </div>
+
+    <!-- Demo -->
+    <div class="demo" id="demo">
+      <div class="demo-label">How it works</div>
+      <div class="demo-flow">
+        <div class="demo-step">
+          <div class="demo-box clipboard">
+            <div class="demo-title">clipboard</div>
+            <div class="demo-content">https://github.com<span class="demo-cursor"></span></div>
+          </div>
+        </div>
+        <span class="demo-arrow">&#8594;</span>
+        <div class="demo-step">
+          <div class="demo-box">
+            <div class="demo-title">notd capture</div>
+            <div class="demo-content" style="color:var(--accent)">&#9654; running</div>
+          </div>
+        </div>
+        <span class="demo-arrow">&#8594;</span>
+        <div class="demo-step">
+          <div class="demo-box detect">
+            <div class="demo-title">type detected</div>
+            <div class="demo-content">url</div>
+          </div>
+        </div>
+        <span class="demo-arrow">&#8594;</span>
+        <div class="demo-step">
+          <div class="demo-box file">
+            <div class="demo-title">saved to</div>
+            <div class="demo-content">notd_raw.txt</div>
+          </div>
+        </div>
+        <span class="demo-arrow">&#8594;</span>
+        <div class="demo-step">
+          <div class="demo-box done">
+            <div class="demo-title">status</div>
+            <div class="demo-content">&#10003; no&#xB7;ted</div>
+            <div class="demo-pulse"></div>
+          </div>
+        </div>
+      </div>
+      <button class="demo-restart" onclick="var f=document.querySelector('.demo-flow'),c=f.cloneNode(true);f.parentNode.replaceChild(c,f);this.blur();">replay</button>
     </div>
 
     <!-- Type Detection -->

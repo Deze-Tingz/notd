@@ -45,6 +45,10 @@ DEFAULT_CONFIG = {
         "win": False,
         "key": "N",
     },
+    "mouse_capture": {
+        "enabled": True,
+        "button": "middle",
+    },
 }
 
 
@@ -178,10 +182,12 @@ def cmd_capture(cfg: dict, force_auto_type: bool = False):
 
 def cmd_status(cfg: dict):
     hk = cfg.get("hotkey", {})
+    mc = cfg.get("mouse_capture", {})
     print("notd - Deze Tingz")
     print(f"Config: {CONFIG_PATH}")
     print(f"Data:   {cfg['root_dir']}")
     print(f"Hotkey: ctrl={hk.get('ctrl')} alt={hk.get('alt')} key={hk.get('key')} enabled={hk.get('enabled')}")
+    print(f"Mouse:  button={mc.get('button')} enabled={mc.get('enabled')}")
 
 
 def cmd_open(cfg: dict):
@@ -216,40 +222,87 @@ VK_MAP = {
 }
 
 
-def cmd_hotkey(cfg: dict):
+WH_MOUSE_LL = 14
+WM_MBUTTONDOWN = 0x0207
+HOOKPROC = ctypes.WINFUNCTYPE(
+    ctypes.c_long,
+    ctypes.c_int,
+    ctypes.wintypes.WPARAM,
+    ctypes.wintypes.LPARAM,
+)
+
+_mouse_hook = None
+_mouse_cfg = None
+
+
+def _mouse_hook_proc(nCode, wParam, lParam):
+    if nCode >= 0 and wParam == WM_MBUTTONDOWN:
+        threading.Thread(target=cmd_capture, args=(_mouse_cfg,), daemon=True).start()
+        return 1  # suppress default auto-scroll
+    return user32.CallNextHookEx(None, nCode, wParam, lParam)
+
+
+_mouse_callback = HOOKPROC(_mouse_hook_proc)
+
+
+def cmd_listen(cfg: dict):
+    global _mouse_hook, _mouse_cfg
+    _mouse_cfg = cfg
+
+    mc = cfg.get("mouse_capture", {})
     hk = cfg.get("hotkey", {})
-    if not hk.get("enabled"):
-        print("Hotkey disabled in config.")
+    has_mouse = mc.get("enabled", False)
+    has_hotkey = hk.get("enabled", False)
+
+    if not has_mouse and not has_hotkey:
+        print("Both mouse capture and hotkey are disabled in config.")
         return
 
-    mods = 0
-    if hk.get("ctrl"):
-        mods |= MOD_CTRL
-    if hk.get("alt"):
-        mods |= MOD_ALT
-    if hk.get("shift"):
-        mods |= MOD_SHIFT
-    if hk.get("win"):
-        mods |= MOD_WIN
+    # Register keyboard hotkey if enabled
+    if has_hotkey:
+        mods = 0
+        if hk.get("ctrl"):
+            mods |= MOD_CTRL
+        if hk.get("alt"):
+            mods |= MOD_ALT
+        if hk.get("shift"):
+            mods |= MOD_SHIFT
+        if hk.get("win"):
+            mods |= MOD_WIN
+        key_name = hk.get("key", "N").upper()
+        vk = VK_MAP.get(key_name, 0x4E)
+        if not user32.RegisterHotKey(None, HOTKEY_ID, mods, vk):
+            print("Failed to register hotkey.")
+        else:
+            print(f"Keyboard hotkey active: {key_name}")
 
-    key_name = hk.get("key", "N").upper()
-    vk = VK_MAP.get(key_name, 0x4E)
+    # Install mouse hook if enabled
+    if has_mouse:
+        _mouse_hook = user32.SetWindowsHookExW(
+            WH_MOUSE_LL, _mouse_callback,
+            ctypes.windll.kernel32.GetModuleHandleW(None), 0,
+        )
+        if not _mouse_hook:
+            print("Failed to install mouse hook.")
+        else:
+            print("Middle mouse button capture active.")
 
-    if not user32.RegisterHotKey(None, HOTKEY_ID, mods, vk):
-        print("Failed to register hotkey.")
-        return
-
-    print("notd hotkey active. Press shortcut to capture.")
+    print("notd listening. Press Ctrl+C to stop.")
 
     try:
         msg = ctypes.wintypes.MSG()
         while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
             if msg.message == WM_HOTKEY:
                 cmd_capture(cfg)
+            user32.TranslateMessage(ctypes.byref(msg))
+            user32.DispatchMessageW(ctypes.byref(msg))
     except KeyboardInterrupt:
         pass
     finally:
-        user32.UnregisterHotKey(None, HOTKEY_ID)
+        if has_hotkey:
+            user32.UnregisterHotKey(None, HOTKEY_ID)
+        if _mouse_hook:
+            user32.UnhookWindowsHookEx(_mouse_hook)
 
 
 # ============================================================
@@ -325,7 +378,7 @@ def main():
         "command",
         nargs="?",
         default="capture",
-        choices=["capture", "config", "status", "open", "hotkey"],
+        choices=["capture", "config", "status", "open", "listen", "hotkey"],
     )
     parser.add_argument("--auto-type", action="store_true")
     parser.add_argument("--silent", action="store_true")
@@ -340,7 +393,8 @@ def main():
         "config": lambda: cmd_config(cfg),
         "status": lambda: cmd_status(cfg),
         "open": lambda: cmd_open(cfg),
-        "hotkey": lambda: cmd_hotkey(cfg),
+        "listen": lambda: cmd_listen(cfg),
+        "hotkey": lambda: cmd_listen(cfg),
     }
     commands[args.command]()
 

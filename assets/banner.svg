@@ -39,6 +39,9 @@
   <!-- Title -->
   <text x="260" y="195" font-family="Consolas, 'Courier New', monospace" font-size="80" font-weight="bold" fill="#E6EDF5" letter-spacing="-2">notd</text>
 
+  <!-- Pronunciation -->
+  <text x="498" y="195" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="24" fill="#4A5568" font-style="italic" letter-spacing="1">no&#xB7;ted</text>
+
   <!-- Subtitle -->
   <text x="265" y="235" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" fill="#9FB0C3" letter-spacing="1">intentional clipboard capture</text>
 
