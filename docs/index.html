@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>notd — intentional clipboard capture</title>
+  <meta name="description" content="Fast clipboard capture with automatic content classification. Zero dependencies. By Deze Tingz.">
+  <meta name="theme-color" content="#0B0F14">
+  <meta property="og:title" content="notd — intentional clipboard capture">
+  <meta property="og:description" content="Copy something. Run notd. It is filed and timestamped. That is it.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://deze-tingz.github.io/notd/">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-deep: #0B0F14;
+      --bg-card: #111826;
+      --bg-surface: #0F1622;
+      --border: #1E293B;
+      --border-light: #334155;
+      --text: #E6EDF5;
+      --text-muted: #9FB0C3;
+      --text-dim: #4A5568;
+      --accent: #6366F1;
+      --accent-blue: #3B82F6;
+      --green: #22C55E;
+      --mono: 'Consolas', 'Courier New', monospace;
+      --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 0 60px;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-icon {
+      display: inline-block;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-family: var(--mono);
+      font-size: 4rem;
+      font-weight: 700;
+      letter-spacing: -3px;
+      margin-bottom: 8px;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      margin-bottom: 32px;
+    }
+
+    .hero .tagline {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+
+    /* Badges */
+    .badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    /* Install */
+    .install {
+      margin: 48px 0;
+      text-align: center;
+    }
+
+    .install-box {
+      display: inline-block;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 24px;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      position: relative;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .install-box:hover {
+      border-color: var(--accent);
+    }
+
+    .install-box code {
+      color: var(--text);
+    }
+
+    .install-box .copy-hint {
+      position: absolute;
+      top: -10px;
+      right: 12px;
+      font-size: 0.65rem;
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--sans);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .install-box:hover .copy-hint {
+      opacity: 1;
+    }
+
+    /* Sections */
+    section {
+      margin: 64px 0;
+    }
+
+    section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      margin-bottom: 32px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Type cards */
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .type-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .type-card:hover {
+      border-color: var(--border-light);
+      transform: translateY(-2px);
+    }
+
+    .type-card .label {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .type-card .desc {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    /* Commands */
+    .cmd-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cmd-row {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .cmd-row .cmd {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      min-width: 200px;
+      flex-shrink: 0;
+    }
+
+    .cmd-row .cmd-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    /* Capture preview */
+    .capture-preview {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.7;
+      color: var(--text-muted);
+      overflow-x: auto;
+    }
+
+    .capture-preview .sep {
+      color: var(--accent);
+      opacity: 0.6;
+    }
+
+    .capture-preview .key {
+      color: var(--text-dim);
+    }
+
+    .capture-preview .val {
+      color: var(--text);
+    }
+
+    .capture-preview .content {
+      color: var(--accent-blue);
+    }
+
+    /* Architecture */
+    .arch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .arch-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .arch-card h3 {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
+    .arch-card .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 0.8rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .arch-card .row:last-child {
+      border-bottom: none;
+    }
+
+    .arch-card .row .k {
+      color: var(--text-dim);
+    }
+
+    .arch-card .row .v {
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+      margin-top: 80px;
+    }
+
+    footer p {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 2.8rem; }
+      .arch { grid-template-columns: 1fr; }
+      .cmd-row { flex-direction: column; gap: 4px; }
+      .cmd-row .cmd { min-width: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Hero -->
+    <div class="hero">
+      <svg class="hero-icon" viewBox="0 0 80 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="16" width="64" height="76" rx="6" stroke="#6366F1" stroke-width="2.5"/>
+        <path d="M24 16V8A4 4 0 0 1 28 4H52A4 4 0 0 1 56 8V16" stroke="#6366F1" stroke-width="2.5"/>
+        <line x1="22" y1="40" x2="58" y2="40" stroke="#3B82F6" stroke-width="1.5" opacity="0.5"/>
+        <line x1="22" y1="52" x2="50" y2="52" stroke="#3B82F6" stroke-width="1.5" opacity="0.5"/>
+        <line x1="22" y1="64" x2="54" y2="64" stroke="#3B82F6" stroke-width="1.5" opacity="0.5"/>
+        <path d="M44 70L52 56H46L54 42" stroke="#818CF8" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+      </svg>
+
+      <h1><span>notd</span></h1>
+      <p>intentional clipboard capture</p>
+
+      <div class="badges">
+        <span class="badge"><span class="dot" style="background:#3776AB"></span>Python 3.10+</span>
+        <span class="badge"><span class="dot" style="background:#5391FE"></span>PowerShell 5.1+</span>
+        <span class="badge"><span class="dot" style="background:#0078D6"></span>Windows</span>
+        <span class="badge"><span class="dot" style="background:#22C55E"></span>MIT License</span>
+        <span class="badge"><span class="dot" style="background:#8B5CF6"></span>Zero Dependencies</span>
+      </div>
+
+      <p class="tagline">Copy something. Run notd. It is filed and timestamped. That is it.</p>
+    </div>
+
+    <!-- Install -->
+    <div class="install">
+      <div class="install-box" onclick="navigator.clipboard.writeText('pip install notd || git clone https://github.com/Deze-Tingz/notd.git')">
+        <span class="copy-hint">click to copy</span>
+        <code>git clone https://github.com/Deze-Tingz/notd.git</code>
+      </div>
+    </div>
+
+    <!-- Type Detection -->
+    <section>
+      <h2>Auto Classification</h2>
+      <div class="type-grid">
+        <div class="type-card">
+          <div class="label" style="color:#3B82F6">url</div>
+          <div class="desc">Links starting with https:// or www.</div>
+        </div>
+        <div class="type-card">
+          <div class="label" style="color:#22C55E">command</div>
+          <div class="desc">Terminal commands: git, docker, npm, python...</div>
+        </div>
+        <div class="type-card">
+          <div class="label" style="color:#8B5CF6">code</div>
+          <div class="desc">Functions, classes, imports, code blocks</div>
+        </div>
+        <div class="type-card">
+          <div class="label" style="color:#EF4444">error</div>
+          <div class="desc">Exceptions, tracebacks, stack traces</div>
+        </div>
+        <div class="type-card">
+          <div class="label" style="color:#9FB0C3">text</div>
+          <div class="desc">Everything else — notes, snippets, prose</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Commands -->
+    <section>
+      <h2>Commands</h2>
+      <div class="cmd-list">
+        <div class="cmd-row">
+          <span class="cmd">notd capture</span>
+          <span class="cmd-desc">Grab clipboard, classify, and save</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd">notd capture --silent</span>
+          <span class="cmd-desc">Capture without sound feedback</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd">notd status</span>
+          <span class="cmd-desc">Show config path, data dir, hotkey info</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd">notd open</span>
+          <span class="cmd-desc">Open captures folder in Explorer</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd">notd config</span>
+          <span class="cmd-desc">Launch the settings UI</span>
+        </div>
+        <div class="cmd-row">
+          <span class="cmd">notd hotkey</span>
+          <span class="cmd-desc">Start global hotkey listener (Ctrl+Alt+N)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Capture Format -->
+    <section>
+      <h2>Capture Format</h2>
+      <div class="capture-preview">
+        <div class="sep">━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+        <div><span class="key">PROJECT:</span> <span class="val">notd</span></div>
+        <div><span class="key">OWNER:</span> <span class="val">Deze Tingz</span></div>
+        <div><span class="key">TIMESTAMP:</span> <span class="val">2026-02-08 03:27:20</span></div>
+        <div><span class="key">TYPE:</span> <span class="val">url</span></div>
+        <br>
+        <div class="content">https://github.com/Deze-Tingz/notd</div>
+        <div class="sep">━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section>
+      <h2>Architecture</h2>
+      <div class="arch">
+        <div class="arch-card">
+          <h3 style="color:#3776AB">Python</h3>
+          <div class="row"><span class="k">File</span><span class="v">src/notd.py</span></div>
+          <div class="row"><span class="k">Runtime</span><span class="v">3.10+ stdlib</span></div>
+          <div class="row"><span class="k">UI</span><span class="v">tkinter</span></div>
+          <div class="row"><span class="k">Clipboard</span><span class="v">tkinter</span></div>
+          <div class="row"><span class="k">Hotkey</span><span class="v">ctypes/user32</span></div>
+          <div class="row"><span class="k">Dependencies</span><span class="v">zero</span></div>
+        </div>
+        <div class="arch-card">
+          <h3 style="color:#5391FE">PowerShell</h3>
+          <div class="row"><span class="k">File</span><span class="v">src/notd.ps1</span></div>
+          <div class="row"><span class="k">Runtime</span><span class="v">5.1+</span></div>
+          <div class="row"><span class="k">UI</span><span class="v">WinForms</span></div>
+          <div class="row"><span class="k">Clipboard</span><span class="v">PresentationCore</span></div>
+          <div class="row"><span class="k">Hotkey</span><span class="v">P/Invoke</span></div>
+          <div class="row"><span class="k">Dependencies</span><span class="v">zero</span></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>Built by <strong>Val John</strong> at <a href="https://github.com/Deze-Tingz">Deze Tingz</a></p>
+      <p style="margin-top:8px"><a href="https://github.com/Deze-Tingz/notd">View on GitHub</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>
