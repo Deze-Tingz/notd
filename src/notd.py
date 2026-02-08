@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
 import winsound
 from datetime import datetime
@@ -196,6 +197,44 @@ def cmd_open(cfg: dict):
     os.startfile(str(d))
 
 
+PID_PATH = CONFIG_HOME / "notd.pid"
+
+
+def cmd_start(cfg: dict):
+    """Launch listener in background using pythonw (no console window)."""
+    if PID_PATH.exists():
+        old_pid = int(PID_PATH.read_text().strip())
+        try:
+            os.kill(old_pid, 0)
+            print(f"notd already running (PID {old_pid}).")
+            return
+        except OSError:
+            pass
+    pythonw = Path(sys.executable).parent / "pythonw.exe"
+    if not pythonw.exists():
+        pythonw = Path(sys.executable)
+    proc = subprocess.Popen(
+        [str(pythonw), __file__, "listen"],
+        creationflags=0x08000000,  # CREATE_NO_WINDOW
+    )
+    PID_PATH.write_text(str(proc.pid))
+    print(f"notd started in background (PID {proc.pid}).")
+
+
+def cmd_stop(cfg: dict):
+    """Stop background listener."""
+    if not PID_PATH.exists():
+        print("notd is not running.")
+        return
+    pid = int(PID_PATH.read_text().strip())
+    try:
+        os.kill(pid, 9)
+        print(f"notd stopped (PID {pid}).")
+    except OSError:
+        print(f"notd process {pid} not found.")
+    PID_PATH.unlink(missing_ok=True)
+
+
 # ============================================================
 # HOTKEY (Win32)
 # ============================================================
@@ -225,6 +264,9 @@ VK_MAP = {
 WH_MOUSE_LL = 14
 WM_MBUTTONDOWN = 0x0207
 WM_MBUTTONUP = 0x0208
+WM_MBUTTONDBLCLK = 0x0209
+VK_ESCAPE = 0x1B
+KEYEVENTF_KEYUP = 0x0002
 
 # LRESULT is LONG_PTR (64-bit on x64 Windows)
 LRESULT = ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
@@ -280,8 +322,16 @@ def _get_clipboard_win32() -> str:
         user32.CloseClipboard()
 
 
+def _kill_autoscroll():
+    """Send Escape to cancel any auto-scroll that leaked past the hook."""
+    time.sleep(0.05)
+    user32.keybd_event(VK_ESCAPE, 0, 0, 0)
+    user32.keybd_event(VK_ESCAPE, 0, KEYEVENTF_KEYUP, 0)
+
+
 def _capture_from_hook(cfg):
     """Capture using Win32 clipboard (avoids tkinter threading issues)."""
+    _kill_autoscroll()
     content = _get_clipboard_win32()
     if not content or not content.strip():
         play_sound(cfg, "fail_sound")
@@ -299,10 +349,10 @@ def _capture_from_hook(cfg):
 
 
 def _mouse_hook_proc(nCode, wParam, lParam):
-    if nCode >= 0 and wParam in (WM_MBUTTONDOWN, WM_MBUTTONUP):
+    if nCode >= 0 and wParam in (WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MBUTTONDBLCLK):
         if wParam == WM_MBUTTONDOWN:
             threading.Thread(target=_capture_from_hook, args=(_mouse_cfg,), daemon=True).start()
-        return 1  # suppress both down and up to kill auto-scroll
+        return 1  # eat all middle-button events
     return user32.CallNextHookEx(_mouse_hook, nCode, wParam, lParam)
 
 
@@ -442,7 +492,7 @@ def main():
         "command",
         nargs="?",
         default="capture",
-        choices=["capture", "config", "status", "open", "listen", "hotkey"],
+        choices=["capture", "config", "status", "open", "listen", "hotkey", "start", "stop"],
     )
     parser.add_argument("--auto-type", action="store_true")
     parser.add_argument("--silent", action="store_true")
@@ -459,6 +509,8 @@ def main():
         "open": lambda: cmd_open(cfg),
         "listen": lambda: cmd_listen(cfg),
         "hotkey": lambda: cmd_listen(cfg),
+        "start": lambda: cmd_start(cfg),
+        "stop": lambda: cmd_stop(cfg),
     }
     commands[args.command]()
 
