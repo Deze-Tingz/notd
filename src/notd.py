@@ -224,6 +224,7 @@ VK_MAP = {
 
 WH_MOUSE_LL = 14
 WM_MBUTTONDOWN = 0x0207
+WM_MBUTTONUP = 0x0208
 
 # LRESULT is LONG_PTR (64-bit on x64 Windows)
 LRESULT = ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
@@ -234,12 +235,26 @@ HOOKPROC = ctypes.WINFUNCTYPE(
     ctypes.wintypes.LPARAM,
 )
 
-# Set proper function signatures
+kernel32 = ctypes.windll.kernel32
+
+# Set proper function signatures — hooks
 user32.SetWindowsHookExW.argtypes = [ctypes.c_int, HOOKPROC, ctypes.wintypes.HINSTANCE, ctypes.wintypes.DWORD]
 user32.SetWindowsHookExW.restype = ctypes.c_void_p
 user32.CallNextHookEx.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.wintypes.WPARAM, ctypes.wintypes.LPARAM]
 user32.CallNextHookEx.restype = LRESULT
 user32.UnhookWindowsHookEx.argtypes = [ctypes.c_void_p]
+
+# Set proper function signatures — clipboard (pointer-sized returns on x64)
+user32.OpenClipboard.argtypes = [ctypes.wintypes.HWND]
+user32.OpenClipboard.restype = ctypes.wintypes.BOOL
+user32.GetClipboardData.argtypes = [ctypes.wintypes.UINT]
+user32.GetClipboardData.restype = ctypes.c_void_p
+user32.CloseClipboard.argtypes = []
+user32.CloseClipboard.restype = ctypes.wintypes.BOOL
+kernel32.GlobalLock.argtypes = [ctypes.c_void_p]
+kernel32.GlobalLock.restype = ctypes.c_void_p
+kernel32.GlobalUnlock.argtypes = [ctypes.c_void_p]
+kernel32.GlobalUnlock.restype = ctypes.wintypes.BOOL
 
 _mouse_hook = None
 _mouse_cfg = None
@@ -248,7 +263,6 @@ _mouse_cfg = None
 def _get_clipboard_win32() -> str:
     """Read clipboard using Win32 API directly (thread-safe, no tkinter)."""
     CF_UNICODETEXT = 13
-    kernel32 = ctypes.windll.kernel32
     if not user32.OpenClipboard(None):
         return ""
     try:
@@ -285,9 +299,10 @@ def _capture_from_hook(cfg):
 
 
 def _mouse_hook_proc(nCode, wParam, lParam):
-    if nCode >= 0 and wParam == WM_MBUTTONDOWN:
-        threading.Thread(target=_capture_from_hook, args=(_mouse_cfg,), daemon=True).start()
-        return 1  # suppress default auto-scroll
+    if nCode >= 0 and wParam in (WM_MBUTTONDOWN, WM_MBUTTONUP):
+        if wParam == WM_MBUTTONDOWN:
+            threading.Thread(target=_capture_from_hook, args=(_mouse_cfg,), daemon=True).start()
+        return 1  # suppress both down and up to kill auto-scroll
     return user32.CallNextHookEx(_mouse_hook, nCode, wParam, lParam)
 
 
