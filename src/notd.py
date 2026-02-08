@@ -224,22 +224,71 @@ VK_MAP = {
 
 WH_MOUSE_LL = 14
 WM_MBUTTONDOWN = 0x0207
+
+# LRESULT is LONG_PTR (64-bit on x64 Windows)
+LRESULT = ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
 HOOKPROC = ctypes.WINFUNCTYPE(
-    ctypes.c_long,
+    LRESULT,
     ctypes.c_int,
     ctypes.wintypes.WPARAM,
     ctypes.wintypes.LPARAM,
 )
 
+# Set proper function signatures
+user32.SetWindowsHookExW.argtypes = [ctypes.c_int, HOOKPROC, ctypes.wintypes.HINSTANCE, ctypes.wintypes.DWORD]
+user32.SetWindowsHookExW.restype = ctypes.c_void_p
+user32.CallNextHookEx.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.wintypes.WPARAM, ctypes.wintypes.LPARAM]
+user32.CallNextHookEx.restype = LRESULT
+user32.UnhookWindowsHookEx.argtypes = [ctypes.c_void_p]
+
 _mouse_hook = None
 _mouse_cfg = None
 
 
+def _get_clipboard_win32() -> str:
+    """Read clipboard using Win32 API directly (thread-safe, no tkinter)."""
+    CF_UNICODETEXT = 13
+    kernel32 = ctypes.windll.kernel32
+    if not user32.OpenClipboard(None):
+        return ""
+    try:
+        h = user32.GetClipboardData(CF_UNICODETEXT)
+        if not h:
+            return ""
+        p = kernel32.GlobalLock(h)
+        if not p:
+            return ""
+        try:
+            return ctypes.wstring_at(p)
+        finally:
+            kernel32.GlobalUnlock(h)
+    finally:
+        user32.CloseClipboard()
+
+
+def _capture_from_hook(cfg):
+    """Capture using Win32 clipboard (avoids tkinter threading issues)."""
+    content = _get_clipboard_win32()
+    if not content or not content.strip():
+        play_sound(cfg, "fail_sound")
+        return
+    max_chars = cfg.get("max_clip_chars", 200000)
+    content = content[:max_chars]
+    ctype = infer_type(content) if cfg.get("auto_type", True) else "capture"
+    bucket = "code" if ctype == "code" else "text"
+    fpath = resolve_file(cfg, bucket)
+    ensure_dir(Path(cfg["root_dir"]))
+    ensure_dir(captures_dir(cfg))
+    with open(fpath, "a", encoding="utf-8") as f:
+        f.write(format_entry(content, ctype))
+    play_sound(cfg, "success_sound")
+
+
 def _mouse_hook_proc(nCode, wParam, lParam):
     if nCode >= 0 and wParam == WM_MBUTTONDOWN:
-        threading.Thread(target=cmd_capture, args=(_mouse_cfg,), daemon=True).start()
+        threading.Thread(target=_capture_from_hook, args=(_mouse_cfg,), daemon=True).start()
         return 1  # suppress default auto-scroll
-    return user32.CallNextHookEx(None, nCode, wParam, lParam)
+    return user32.CallNextHookEx(_mouse_hook, nCode, wParam, lParam)
 
 
 _mouse_callback = HOOKPROC(_mouse_hook_proc)
