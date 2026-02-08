@@ -1,0 +1,28 @@
+[project]
+name = "notd"
+version = "1.0.0"
+description = "Intentional clipboard capture with automatic content classification"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Val John", email = "deze.tingz@gmail.com"},
+]
+keywords = ["clipboard", "capture", "productivity", "windows"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+Homepage = "https://github.com/Deze-Tingz/notd"
+Repository = "https://github.com/Deze-Tingz/notd"
+Issues = "https://github.com/Deze-Tingz/notd/issues"
+
+[project.scripts]
+notd = "src.notd:main"

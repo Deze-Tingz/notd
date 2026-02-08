@@ -1,0 +1,59 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        Title="notd Settings — Deze Tingz"
+        Height="560" Width="820"
+        WindowStartupLocation="CenterScreen"
+        Background="#0B0F14"
+        FontFamily="Segoe UI"
+        ResizeMode="CanResize">
+
+  <Grid Margin="22">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <Border Grid.Row="0" CornerRadius="18" Background="#111826" Padding="18">
+      <StackPanel>
+        <TextBlock Text="notd" FontSize="30" FontWeight="SemiBold" Foreground="#E6EDF5"/>
+        <TextBlock Text="Settings • fast capture, deliberate organization"
+                   Margin="0,6,0,0"
+                   FontSize="13"
+                   Foreground="#9FB0C3"/>
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="1" Margin="0,16,0,16" CornerRadius="18" Background="#0F1622" Padding="18">
+      <StackPanel>
+
+        <TextBlock Text="Storage location" FontWeight="SemiBold" Foreground="#E6EDF5"/>
+        <TextBox Name="RootDir" Height="36" Margin="0,8,0,16"/>
+
+        <TextBlock Text="Text file type" Foreground="#E6EDF5"/>
+        <ComboBox Name="TextType" Height="32" Margin="0,6,0,12">
+          <ComboBoxItem Content="txt"/>
+          <ComboBoxItem Content="md"/>
+          <ComboBoxItem Content="jsonl"/>
+        </ComboBox>
+
+        <TextBlock Text="Code file type" Foreground="#E6EDF5"/>
+        <ComboBox Name="CodeType" Height="32" Margin="0,6,0,12">
+          <ComboBoxItem Content="md"/>
+          <ComboBoxItem Content="txt"/>
+          <ComboBoxItem Content="jsonl"/>
+        </ComboBox>
+
+        <CheckBox Name="SchemaEnabled" Content="Enable schema" Foreground="#E6EDF5"/>
+        <CheckBox Name="AutoTypeEnabled" Content="Auto detect type" Foreground="#E6EDF5"/>
+        <CheckBox Name="SoundsEnabled" Content="Enable sounds" Foreground="#E6EDF5"/>
+
+      </StackPanel>
+    </Border>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button Name="Cancel" Width="100" Margin="0,0,10,0">Cancel</Button>
+      <Button Name="Save" Width="140">Save</Button>
+    </StackPanel>
+
+  </Grid>
+</Window>

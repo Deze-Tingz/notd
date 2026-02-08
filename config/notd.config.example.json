@@ -1,0 +1,21 @@
+{
+    "project": "notd",
+    "owner": "Deze Tingz",
+    "root_dir": "C:\\notd_data",
+    "text_file_type": "txt",
+    "code_file_type": "md",
+    "schema_enabled": true,
+    "auto_type": true,
+    "sounds_enabled": true,
+    "success_sound": "C:\\Windows\\Media\\Windows Hardware Insert.wav",
+    "fail_sound": "C:\\Windows\\Media\\Windows Hardware Fail.wav",
+    "max_clip_chars": 200000,
+    "hotkey": {
+        "enabled": false,
+        "ctrl": true,
+        "alt": true,
+        "shift": false,
+        "win": false,
+        "key": "N"
+    }
+}
